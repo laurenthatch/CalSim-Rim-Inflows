@@ -281,18 +281,18 @@ def unimpaired_flows(df_impaired, fl_storages=[], fl_additions=[], fl_subtractio
 
     Parameters
     ----------
-    df_impaired: dataframe
+    df_impaired: seires
         Impaired flow data
-    fl_storages: list of dataframes
+    fl_storages: list of series
         Storage data for the reservoirs upstream
-    fl_additions: list of dataframes
+    fl_additions: list of series
         Data that needs to be added in
-    fl_subtractions: list of dataframes
+    fl_subtractions: list of series
         Data that needs to be subtracted out
 
     Returns
     -------
-    df_unimpaired: dataframe
+    df_unimpaired: series
         Unimpaired flow data
     """
 

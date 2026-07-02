@@ -1,3 +1,81 @@
+**WATERSHED FACTORS:**
+
+AMADR - doc
+
+CMP001 - no doc
+
+CMCHE - doc
+
+CMCHE - doc
+
+DSC035 - doc
+
+NHGAN - doc
+
+TGC003 - no doc
+
+NFM010 - no doc
+
+UBEAR - no doc
+
+SLTSP - no doc
+
+The documented watershed factors should be updated. The table headings (maybe wrong) indicate that they use precip from
+
+1971 - 2000. We have nearly double that data now.
+
+
+
+**MODEL COMPARISON**
+
+AMADR - no models
+
+CMCHE - has models A-D and uses none
+
+CMP001 - only model A
+
+CMP014 - only model A
+
+COL003 - models A and B
+
+CSM035 - no models
+
+DSC035 - models A - D, uses A and B
+
+JNKSN - only model A
+
+MFM008 - no model
+
+MOK079 - no model
+
+NFM010 - only model A
+
+NHGAN - no model
+
+PARDE - only model A
+
+SFM005 - models A and B
+
+SLTSP - only model A
+
+TGC003 - only model A
+
+UBEAR - only model A
+
+
+
+**SHEET DETAILS**
+
+CSM035	
+
+
+
+(OLD) There are two tabs, CDEC CSN UNIMPAIRED and CDEC CSN, but the unimpaired tab doesn't have any math or indication of how the unimpairment was done. So I'm going to use CDEC CSN UNIMPAIRED as my input for now. Let's flag this to reach out to these folks about the extension: A.Draper/Stantec, B.Childs/Stantec, M. Behrouz/Stantec.
+
+(RESOLVED) This CDEC CSN UNIMPAIRED is only used to fill when 11335000 UNIMPAIRED is NaN, but it's never NaN, so we don't have to worry about it.
+
+
+
 CMP014
 
 

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from extension_functions import create_final_flow_plots, area_scale, remove_negatives_timeseries
+from extension_functions import create_final_flow_plots, area_scale, remove_negatives_timeseries, unimpaired_flows
 from datetime import datetime
 
 def I_DCC010(df_extended_data, df_rim_inflows):
@@ -2002,7 +2002,7 @@ def I_MOK079(df_9500_FNF, df_3500, df_PARDE, df_CMCHE, df_NFM010, df_MFM008, df_
     # fill df_location with df_9500_FNF, but where df_9500_FNF is NaN, fill with df_camanche_combo
     df_location = df_9500_FNF.iloc[:, 0].fillna(df_camanche_combo.iloc[:, 0]).to_frame()
 
-    # subtract of many SV INPUT flows
+    # subtract off many SV INPUT flows
     df_location = (df_location.iloc[:, 0] - df_NFM010.iloc[:, 0] - df_MFM008.iloc[:, 0] - df_UBEAR.iloc[:, 0]
                    - df_SLTSP.iloc[:, 0] - df_SFM005.iloc[:, 0] - df_TGC003.iloc[:, 0] - df_COL003.iloc[:, 0]).to_frame()
 
@@ -2107,3 +2107,116 @@ def I_CMP014(df_11331500, df_rim_inflows):
 
     # create the plots to compare the observed vs synthetic data
     create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_CMP014')
+
+
+def I_CSM035(df_11335000, df_jnksn, df_cmp001, df_cmp014, df_rim_inflows):
+    """
+    Calculate the final rim inflow for CalSim. Location: I_CSM035
+
+    Parameters
+    ----------
+    df_11335000: dataframe
+        One-column dataframe used as input to create the final rim inflow. Follows unimpairment in sheet CMP001.
+    df_jnksn: dataframe
+        The rim inflow output of I_JNKSN.
+    df_cmp001: dataframe
+        The rim inflow output of I_CMP001.
+    df_cmp014: dataframe
+        The rim inflow output of I_CMP014.
+    df_rim_inflows: dataframe
+        Dataframe of rim inflows that have been calculated already. Also target dataframe for newly created rim inflow.
+    Returns
+    -------
+    None
+    """
+
+    # retrieve the first column as a series. this should be the only column
+    df_location = df_11335000.iloc[:, 0]
+
+    # subtract off JNKSN, CMP001, and CMP014
+    df_location = unimpaired_flows(df_location, fl_subtractions=[df_jnksn.iloc[:,0], df_cmp001.iloc[:,0],
+                                                                 df_cmp014.iloc[:,0]])
+
+    # round to 2 decimals
+    df_location = df_location.round(2)
+
+    # set anything negative to zero.
+    df_location.loc[df_location < 0] = 0
+
+    # add into the rim inflow dataframe
+    df_rim_inflows['I_CSM035'] = df_location
+
+    # create the plots to compare the observed vs synthetic data
+    create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_CSM035')
+
+
+def I_AMADR(df_11335000, df_rim_inflows):
+    """
+    Calculate the final rim inflow for CalSim. Location: I_CSM035
+
+    Parameters
+    ----------
+    df_11335000: dataframe
+        One-column dataframe used as input to create the final rim inflow. Follows unimpairment in sheet JNKSN.
+    df_rim_inflows: dataframe
+        Dataframe of rim inflows that have been calculated already. Also target dataframe for newly created rim inflow.
+    Returns
+    -------
+    None
+    """
+
+    # retrieve the first column as a series. this should be the only column
+    df_location = df_11335000.iloc[:, 0]
+
+    # watershed factor calculated as the ratio of total precipitation volume ratio from 1971-2000 between
+    # Cosumnes River at Michigan Bar and Jackson Creek at dam. See sheet CS3_I_AMADR_Rev2022F.xlsm, tab "Watersheds"
+    d_watershed = 0.0804
+    df_location = df_location * d_watershed
+
+    # round to 2 decimals
+    df_location = df_location.round(2)
+
+    # set anything negative to zero.
+    df_location.loc[df_location < 0] = 0
+
+    # add into the rim inflow dataframe
+    df_rim_inflows['I_AMADR'] = df_location
+
+    # create the plots to compare the observed vs synthetic data
+    create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_AMADR')
+
+def I_DSC035(df_11326300, df_11327000, df_rim_inflows):
+    """
+    Calculate the final rim inflow for CalSim. Location: I_DSC035
+
+    Parameters
+    ----------
+    df_11326300: dataframe
+        One-column dataframe used as input to create the final rim inflow. Model A from DSC035 sheet.
+    df_11327000: dataframe
+        One-column dataframe used as input to create the final rim inflow. Model B from DSC035 sheet.
+    df_rim_inflows: dataframe
+        Dataframe of rim inflows that have been calculated already. Also target dataframe for newly created rim inflow.
+    Returns
+    -------
+    None
+    """
+
+    # add model A and model B
+    df_location = (df_11326300.iloc[:, 0] + df_11327000.iloc[:, 0])
+
+    # watershed factor calculated in sheet CS3_I_DSC035_Rev2022F.xlsm, tab "Watersheds"
+    d_watershed = 1.335
+    df_location = df_location * d_watershed
+
+    # round to 2 decimals
+    df_location = df_location.round(2)
+
+    # set anything negative to zero.
+    df_location.loc[df_location < 0] = 0
+
+    # add into the rim inflow dataframe
+    df_rim_inflows['I_DSC035'] = df_location
+
+    # create the plots to compare the observed vs synthetic data
+    create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_DSC035')

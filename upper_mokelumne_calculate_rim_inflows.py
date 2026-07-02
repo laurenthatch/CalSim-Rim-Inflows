@@ -113,7 +113,18 @@ if __name__ == "__main__":
     # 11319500_v2 is created for use in MOK079. This is the USGS gage 11319500. Compare with COL003 above.
     if '11319500_v2' not in df_full_data.columns:
         df_full_data['11319500_v2'] = np.nan
-    df_full_data['11319500_v2'] = df_full_data['11319500']
+    df_full_data['11319500_v2'] = df_full_data['11319500'].copy()
+
+    # for JNKSN, create a copy of data with dropped WY1955
+    df_full_data.rename(columns={'11332500': '11332500_v1'}, inplace=True)
+    df_full_data["11332500_v2"] = df_full_data["11332500_v1"].copy()
+    df_full_data.loc["1954-10-31":"1955-10-01", "11332500_v2"] = float("nan")
+
+    # see DSC035. df_full_data['11327000_v2'] is created to drop part of the data for before extension. the rest of the
+    # data from the main dataset (df_full_data['11327000'] is later copied over the extension data where available.
+    df_full_data['11327000_v2'] = df_full_data['11327000'].copy()
+    # fill before October 1960 with NaN.
+    df_full_data.loc[:'1960-10-01', '11327000_v2'] = float("nan")
 
     # save to csv
     df_full_data.to_csv('./Intermediate/upper_mokelumne_full_gauge_data_gap_filled.csv')
@@ -158,6 +169,19 @@ if __name__ == "__main__":
     df_extended_data = pd.DataFrame()
     df_synthetic_data = pd.DataFrame()
 
+    # see DEE023, 11335700 WY1967 is gap filled with WY1965 times a ratio of annual flows from 11335000_v2
+    d_65 = df_unimpaired_data.loc['1964-10-01':'1965-10-01', '11335000_v2'].sum()     # annual flow for WY65
+    d_67 = df_unimpaired_data.loc['1966-10-01':'1967-10-01', '11335000_v2'].sum()     # annual flow for WY67
+    df_shifted = df_full_data['11335700'].copy()
+    # create a copy of the data shifted forward 2 years
+    df_shifted.index = df_shifted.index + pd.DateOffset(years=2)
+    # keep one copy of 11335700 unmodified
+    df_full_data['11335700_v1'] = df_full_data['11335700'].copy()
+    # modify the other copy
+    df_full_data.loc['1966-10-01':'1967-10-01' , '11335700'] = (df_shifted.loc['1966-10-01':'1967-10-01']
+                                                                * (d_67 / d_65))
+
+
     if b_replicate_sheets:
         print("Checking inputs to s-curve, part 1...")
         # compare unrounded 11317000
@@ -173,10 +197,7 @@ if __name__ == "__main__":
         compare_two_df(df_unimpaired_data['11335000_v2'], df_before_s['CMP014'], '11335000_v2',
                        'before_s_CMP014')                                                   # for CMP014
 
-    # for JNKSN, create a copy of data with dropped WY1955
-    df_full_data.rename(columns={'11332500': '11332500_v1'}, inplace=True)
-    df_full_data["11332500_v2"] = df_full_data["11332500_v1"].copy()
-    df_full_data.loc["1954-10-31":"1955-10-01", "11332500_v2"] = float("nan")
+
 
     print("Extending flows, part 1...")
     # extend with the s-curve disaggregation, round 1
@@ -194,6 +215,15 @@ if __name__ == "__main__":
     extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11331500'],
                 df_extended_data, df_synthetic_data, 1949, 1954, False,
                 '11331500', i_final_year=i_final_year)                                               # see CMP014
+    extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11326300'],
+                df_extended_data, df_synthetic_data, 1961, 1970, False,
+                '11326300', i_final_year=i_final_year)                                               # see DSC035
+    extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11327000_v2'],
+                df_extended_data, df_synthetic_data, 1961, 1980, False,
+                '11327000_v2', i_final_year=i_final_year)                                            # see DSC035
+    extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11335700_v1'],
+                df_extended_data, df_synthetic_data, 1961, 1977, False,
+                '11335700', i_final_year=i_final_year)                                            # see DEE023
 
     # unimpairing the data for those that rely on previously s-curved data
     print("Calculating unimpaired flows, round 2...")
@@ -232,6 +262,11 @@ if __name__ == "__main__":
     df_extended_data.fillna({'11315000': df_synthetic_data['11315000']}, inplace=True)                # see COL003
     df_extended_data.fillna({'11316600': df_synthetic_data['11316600']}, inplace=True)                # see NFM010
 
+    # see DSC035. copy data from 11327000 onto 11327000 extended data for the dates Oct 1936 - Nov 1941
+    df_extended_data.loc['1935-10-30':'1941-10-01', '11327000_v2'] = df_full_data.loc['1935-10-30':'1941-10-01', '11327000']
+
+    # see DEE023. copy data in WY67 from 11335700 to 11335700_v1 after s-curve
+    df_extended_data.loc['1966-10-01':'1967-10-01','11335700'] = df_full_data.loc['1966-10-01':'1967-10-01' , '11335700']
     # save to csv
     df_extended_data.to_csv('./Intermediate/upper_mokelumne_extended_data.csv')
     df_synthetic_data.to_csv('./Intermediate/upper_mokelumne_synthetic_data.csv')
@@ -261,6 +296,11 @@ if __name__ == "__main__":
         I_JNKSN(df_full_data['11332500_v2'], df_rim_inflows)
         I_CMP001(df_after_s[['CMP001']], df_extra_sv_inputs[['I_JNKSN_IN_CMP001']], df_rim_inflows)
         I_CMP014(df_after_s[['CMP014']], df_rim_inflows)
+        I_CSM035(df_unimpaired_data[['11335000_v1']], df_sv_inputs[['I_JNKSN']],df_sv_inputs[['I_CMP001']],
+                 df_sv_inputs[['I_CMP014']], df_rim_inflows)
+        I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)
+        I_DSC035(df_extended_data[['11326300']], df_extended_data[['11327000_v2']], df_rim_inflows)
+
     else:
         I_MFM008(df_full_data, df_rim_inflows)
         I_SFM005(df_extended_data, df_rim_inflows)
@@ -276,6 +316,10 @@ if __name__ == "__main__":
         I_JNKSN(df_full_data['11332500_v2'], df_rim_inflows)
         I_CMP001(df_extended_data[['11333000']], df_rim_inflows[['I_JNKSN']], df_rim_inflows)
         I_CMP014(df_extended_data[['11331500']], df_rim_inflows)
+        I_CSM035(df_unimpaired_data[['11335000_v1']], df_rim_inflows[['I_JNKSN']], df_rim_inflows[['I_CMP001']],
+             df_rim_inflows[['I_CMP014']], df_rim_inflows)
+        I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)
+        I_DSC035(df_extended_data[['11326300']], df_extended_data[['11327000_v2']], df_rim_inflows)
 
     df_rim_inflows.to_csv('./Outputs/upper_mokelumne_rim_inflows.csv')
 
