@@ -68,11 +68,11 @@ UBEAR - only model A
 
 
 
-**SHEET DETAILS**
+***SHEET DETAILS***
 
 
 
-DEE023
+**DEE023**
 
 
 
@@ -86,7 +86,7 @@ Model A - to calculate the slope and intercept for the linear fit between annual
 
 
 
-CSM035
+**CSM035**
 
 
 
@@ -96,7 +96,7 @@ CSM035
 
 
 
-CMP014
+**CMP014**
 
 
 
@@ -108,7 +108,7 @@ NOTE: When you run s-curve (or linear aggregation) in Model A, the numbers chang
 
 
 
-JNKSN
+**JNKSN**
 
 
 
@@ -118,11 +118,11 @@ MODELA - don't use WY55 in y data set, labeled as "impacted by dam"
 
 USGS 11335000 UNIMP
 
-&#x09;Does not use interpolated Dec 1965 Jenkinson storage. DIFFERENT from CMP001
+&#x09;Does not use interpolated Dec 1965 Jenkinson storage. A DIFFERENT VERSION from CMP001
 
 &#x09;
 
-CMP001
+**CMP001**
 
 
 
@@ -160,7 +160,7 @@ USGS 11335000 UNIMP
 
 
 
-MOK079
+**MOK079**
 
 
 
@@ -188,7 +188,7 @@ PARDE and CMCHE have a rounding difference because excel rounds down and pandas 
 
 
 
-NHGAN
+**NHGAN**
 
 
 
@@ -250,7 +250,7 @@ Blw Camanche FNF EBMUD: UNIMPAIRED USGS 11323500 MOKELUMNE R BW CAMANCHE DAM CA
 
 
 
-NFM010
+**NFM010**
 
 
 
@@ -258,7 +258,7 @@ The SV Input at the end of Stantec's sheet is not exactly the same as the one in
 
 
 
-COL003
+**COL003**
 
 
 
@@ -280,7 +280,7 @@ The s-curve is run for x watershed from 1922 to present, but using the monthly a
 
 
 
-SLTSP
+**SLTSP**
 
 
 
@@ -295,4 +295,12 @@ SLTSP
 
 
 UBEAR and SLTSP use different versions of Lower Bear Salt Springs FNF. TODO clarify difference.
+
+
+
+**GENERAL NOTES**
+
+
+
+Some of the watershed scaling factors that are mysterious in the sheets are explained in the documentation. (example: CMP001)
 

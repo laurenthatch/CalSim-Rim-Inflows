@@ -128,7 +128,6 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
 
     if s_strange_sheet == "DEE023":
         df_y_year_totals.drop(index=1967, inplace=True)
-        print('asdf')
     # fit a model and get the slope and intercept
     o_lin_model = LinearRegression()
     #todo remove next line
