@@ -16,20 +16,20 @@ if __name__ == "__main__":
 
     # option to run each element using "upstream" (antecedent) SV INPUT values from sheets rather than from the values
     # calculated within the Python code.
-    b_use_upstream_sv_inputs = True
+    b_use_upstream_sv_inputs = False
 
     # this flag initiates two things. 1) It runs the upstream code up until we reach the inputs for the s-curve
     # disaggregation. It then checks the x watershed and y watershed against data in files that end in
     # "input_to_s_curve.csv".  2) It takes the s-curve from the sheets (found in files that end in
     # "output_from_s_curve.csv") and runs the code downstream of that point. It compares the final output to the
     # SV INPUT tab of the sheets (found in "CS3_SJR_ReadAllInflowDatatoDSS_05.17.23.xlsm").
-    b_replicate_sheets = True
+    b_replicate_sheets = False
 
     # true on this b_reproduce_error_lbear_ss reproduces two errors in the sheets. 1) time shifts the monthly averages
     # relative to where they belong by 3 months to replicate sheet. 2) calculates monthly averages with an incorrect
     # denominator. The flag is set at the top of this document. Set this to false to run a more correct version of
     # I_SLTSP.
-    b_reproduce_error_lbear_ss = True
+    b_reproduce_error_lbear_ss = False
 
     # --- End Flags
 
@@ -78,7 +78,9 @@ if __name__ == "__main__":
                          ['CMP001', './Inputs/s_curve_replication/cmp001_input_to_s_curve.csv',
                           './Inputs/s_curve_replication/cmp001_output_from_s_curve.csv'],
                          ['CMP014', './Inputs/s_curve_replication/cmp014_input_to_s_curve.csv',
-                         './Inputs/s_curve_replication/cmp014_output_from_s_curve.csv']
+                         './Inputs/s_curve_replication/cmp014_output_from_s_curve.csv'],
+                         ['DEE023', './Inputs/s_curve_replication/dee023_input_to_s_curve.csv',
+                         './Inputs/s_curve_replication/dee023_output_from_s_curve.csv']
                          ]
         # create the dataframes where we keep the before and after data
         df_before_s = pd.DataFrame()
@@ -221,9 +223,9 @@ if __name__ == "__main__":
     extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11327000_v2'],
                 df_extended_data, df_synthetic_data, 1961, 1980, False,
                 '11327000_v2', i_final_year=i_final_year)                                            # see DSC035
-    extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11335700_v1'],
+    extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11335700'],
                 df_extended_data, df_synthetic_data, 1961, 1977, False,
-                '11335700', i_final_year=i_final_year)                                            # see DEE023
+                '11335700', i_final_year=i_final_year, s_strange_sheet='DEE023')                     # see DEE023
 
     # unimpairing the data for those that rely on previously s-curved data
     print("Calculating unimpaired flows, round 2...")
@@ -247,7 +249,7 @@ if __name__ == "__main__":
 
     extend_data(df_unimpaired_data['11319500_v1'], df_full_data['11315000'],
                df_extended_data, df_synthetic_data, 1928, i_final_year, False,
-               '11315000', i_x_start_year=1922, i_final_year=i_final_year, b_is_COL003=True)        # see COL003
+               '11315000', i_x_start_year=1922, i_final_year=i_final_year, s_strange_sheet='COL003') # see COL003
     extend_data(df_unimpaired_data['11319500_v1'], df_unimpaired_data['LBearSS_v1'],
                df_extended_data, df_synthetic_data, 1989, i_final_year, False,
                'LBearSS_v1', i_final_year=i_final_year)                                             # see SLTSP
@@ -293,14 +295,14 @@ if __name__ == "__main__":
                  df_sv_inputs[['I_NFM010']], df_sv_inputs[['I_MFM008']],
                  df_sv_inputs[['I_UBEAR']], df_sv_inputs[['I_SLTSP']], df_sv_inputs[['I_SFM005']],
                  df_sv_inputs[['I_TGC003']], df_sv_inputs[['I_COL003']], df_rim_inflows)
-        I_JNKSN(df_full_data['11332500_v2'], df_rim_inflows)
+        I_JNKSN(df_extended_data['11332500'], df_rim_inflows)
         I_CMP001(df_after_s[['CMP001']], df_extra_sv_inputs[['I_JNKSN_IN_CMP001']], df_rim_inflows)
         I_CMP014(df_after_s[['CMP014']], df_rim_inflows)
         I_CSM035(df_unimpaired_data[['11335000_v1']], df_sv_inputs[['I_JNKSN']],df_sv_inputs[['I_CMP001']],
                  df_sv_inputs[['I_CMP014']], df_rim_inflows)
         I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)
         I_DSC035(df_extended_data[['11326300']], df_extended_data[['11327000_v2']], df_rim_inflows)
-
+        I_DEE023(df_after_s[['DEE023']], df_rim_inflows)
     else:
         I_MFM008(df_full_data, df_rim_inflows)
         I_SFM005(df_extended_data, df_rim_inflows)
@@ -313,13 +315,14 @@ if __name__ == "__main__":
                 df_unimpaired_data[['NH_DAM_RELEASE']], df_rim_inflows)
         I_PARDE(df_rim_inflows)
         I_CMCHE(df_rim_inflows)
-        I_JNKSN(df_full_data['11332500_v2'], df_rim_inflows)
+        I_JNKSN(df_extended_data['11332500'], df_rim_inflows)
         I_CMP001(df_extended_data[['11333000']], df_rim_inflows[['I_JNKSN']], df_rim_inflows)
         I_CMP014(df_extended_data[['11331500']], df_rim_inflows)
         I_CSM035(df_unimpaired_data[['11335000_v1']], df_rim_inflows[['I_JNKSN']], df_rim_inflows[['I_CMP001']],
              df_rim_inflows[['I_CMP014']], df_rim_inflows)
         I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)
         I_DSC035(df_extended_data[['11326300']], df_extended_data[['11327000_v2']], df_rim_inflows)
+        I_DEE023(df_extended_data[['11335700']], df_rim_inflows)
 
     df_rim_inflows.to_csv('./Outputs/upper_mokelumne_rim_inflows.csv')
 

@@ -8,6 +8,8 @@ CMCHE - doc
 
 CMCHE - doc
 
+DEE023 - doc
+
 DSC035 - doc
 
 NHGAN - doc
@@ -40,6 +42,8 @@ COL003 - models A and B
 
 CSM035 - no models
 
+DEE023 - only model A
+
 DSC035 - models A - D, uses A and B
 
 JNKSN - only model A
@@ -66,7 +70,23 @@ UBEAR - only model A
 
 **SHEET DETAILS**
 
-CSM035	
+
+
+DEE023
+
+
+
+Model A - in the target watershed, there is a year of missing gage data (WY67) in the middle of the stretch of otherwise
+
+good data. A previous hydrologist filled '67 by taking the '65 data and multiplying by the ratio of annual flows '67/'65
+
+from the independent watershed (11335000 UNIMP).
+
+Model A - to calculate the slope and intercept for the linear fit between annual flows, they don't use the scaled 1967, but they DO us 1967 as part of the monthly averages
+
+
+
+CSM035
 
 
 
@@ -84,7 +104,7 @@ USGS 11335000 UNIMP
 
 &#x09;Same as JNKSN
 
-
+NOTE: When you run s-curve (or linear aggregation) in Model A, the numbers change. For example, Jan 1957 goes from 6.42 to 0.9. My python script reproduces the 0.9 value. I have no idea where the 6.42 comes from. There are a large number of data points like this.
 
 
 
@@ -126,7 +146,7 @@ JNKSN Evaporation
 
 
 
-I\_JNKSN 
+I\_JNKSN
 
 &#x09;This version differs from our CS3\_SJR\_ReadAllInflowDatatoDSS\_05.17.23 on the following dates:
 

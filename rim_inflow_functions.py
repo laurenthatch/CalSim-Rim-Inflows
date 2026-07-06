@@ -2220,3 +2220,36 @@ def I_DSC035(df_11326300, df_11327000, df_rim_inflows):
 
     # create the plots to compare the observed vs synthetic data
     create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_DSC035')
+
+def I_DEE023(df_11335700, df_rim_inflows):
+    """
+    Calculate the final rim inflow for CalSim. Location: I_DEE023
+
+    Parameters
+    ----------
+    df_11335700: dataframe
+        One-column dataframe used as input to create the final rim inflow. Model A from DEE023 sheet.
+    df_rim_inflows: dataframe
+        Dataframe of rim inflows that have been calculated already. Also target dataframe for newly created rim inflow.
+    Returns
+    -------
+    None
+    """
+
+    df_location = df_11335700.iloc[:, 0]
+
+    # watershed factor calculated in sheet CS3_I_DEE023_Rev2022F.xlsm, tab "Watersheds"
+    d_watershed = 1.626
+    df_location = df_location * d_watershed
+
+    # round to 2 decimals
+    df_location = df_location.round(2)
+
+    # set anything negative to zero.
+    df_location.loc[df_location < 0] = 0
+
+    # add into the rim inflow dataframe
+    df_rim_inflows['I_DEE023'] = df_location
+
+    # create the plots to compare the observed vs synthetic data
+    create_final_flow_plots(df_location, list(range(1922, 2025)), 'I_DEE023')

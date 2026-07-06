@@ -25,9 +25,6 @@ if __name__ == "__main__":
     # first if the needed output folders don't exist, create them
     os.makedirs('./Intermediate', exist_ok=True)
 
-    # TODO: figure out why this this list element is coming in as an int instead
-    # of a string. in the equivalent upper american file, it's a string.
-    # casting it to string here.
     sl_usgs_stations = list(map(str, sl_usgs_stations))
 
     # pull USGS data

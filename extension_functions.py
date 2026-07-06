@@ -12,7 +12,7 @@ import os
 
 
 def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i_y_start_year,
-                           i_y_end_year, b_use_all_y=False, b_is_COL003=False):
+                           i_y_end_year, b_use_all_y=False, s_strange_sheet=''):
     """
     Takes in the x data and the y data and generated a full timeseries of synthetic y data.
     This is meant to replicate what the Excel/VBA does for the S-Curve disaggregation.
@@ -33,8 +33,8 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
         End year of y data to use
     b_use_all_y: bool
         Whether to use all y data or just the section in the Y years
-    b_is_COL003: bool
-        Set to true if running sheet COL003 in Upper Mokelumne. This triggers an unusual handling of monthly averages.
+    s_strange_sheet: string
+        For a few sheets with strange modifications to the s-curve procedure, this is the sheet name with capital letters.
 
     Returns
     -------
@@ -61,7 +61,7 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
 
     # first we want the x value monthly average for just the years of y data we want to keep
     # if working on COL003 (11315000), we need to use only 1944 to 2021 for monthly averages
-    if (b_is_COL003):
+    if (s_strange_sheet == 'COL003'):
         dl_x_month_avgs = [0] + df_x_data.loc[1944:i_y_end_year, :].mean(axis=0).tolist()
     else:
         dl_x_month_avgs = [0] + df_x_data.loc[i_y_start_year:i_y_end_year, :].mean(axis=0).tolist()
@@ -83,8 +83,10 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     # now we want the same cumulative proportion of the monthly averages as before but for the y data
     # first get the averages for the months
     # if doing COL003 (11315000) only average the y months from 1944 to present
-    if(b_is_COL003):
+    if(s_strange_sheet == 'COL003'):
         dl_y_month_avgs = [0] + df_y_data.loc[1944:i_y_end_year, :].mean(axis=0).tolist()
+    elif(s_strange_sheet == 'DEE023'):
+        dl_y_month_avgs = [0] + df_y_data.loc[i_y_start_year:i_y_end_year, :].mean(axis=0).tolist()
     else:
         dl_y_month_avgs = [0] + df_y_data.loc[i_y_start_year:i_y_end_year, :].mean(axis=0).tolist()
 
@@ -124,8 +126,13 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     df_x_year_totals = pd.DataFrame(df_x_data.sum(axis=1))
     df_y_year_totals = pd.DataFrame(df_y_data.sum(axis=1))
 
+    if s_strange_sheet == "DEE023":
+        df_y_year_totals.drop(index=1967, inplace=True)
+        print('asdf')
     # fit a model and get the slope and intercept
     o_lin_model = LinearRegression()
+    #todo remove next line
+    temp = df_x_year_totals.loc[df_y_year_totals.index,]
     o_lin_model.fit(df_x_year_totals.loc[df_y_year_totals.index,], df_y_year_totals)
     d_slope = o_lin_model.coef_[0][0]
     d_intercept = o_lin_model.intercept_[0]
@@ -880,7 +887,7 @@ def read_previous_data(s_path, df_new_data):
 
 def extend_data(df_reference_data, df_current_data, df_extended_data, df_synthetic_data,
                 i_y_start_year, i_y_end_year, b_use_all_y_data, s_name, i_x_start_year=1922,
-                i_final_year=2021, b_is_COL003=False):
+                i_final_year=2021, s_strange_sheet=''):
 
     """
     Extends data using the s-curve disaggregation. Also creates the plots and saves the data into dataframes.
@@ -905,8 +912,8 @@ def extend_data(df_reference_data, df_current_data, df_extended_data, df_synthet
         Name of current station
     i_final_year: int
         Final year for the x data
-    b_is_COL003: bool
-        Flag for if we are analyzing COL003 (11315000) as our y data
+    s_strange_sheet: string
+        For a few sheets with strange modifications to the s-curve procedure, this is the sheet name with capital letters.
     Returns
     -------
     None
@@ -916,7 +923,7 @@ def extend_data(df_reference_data, df_current_data, df_extended_data, df_synthet
                                                                         df_current_data,
                                                                         i_x_start_year, i_final_year,
                                                                         i_y_start_year, i_y_end_year,
-                                                                        b_use_all_y_data, b_is_COL003)
+                                                                        b_use_all_y_data, s_strange_sheet)
     # generate the comparison plots
     s_curve_comparison_plots(df_curr_final_data, df_curr_synthetic_data,
                              timeseries_to_monthly(df_reference_data), timeseries_to_monthly(df_current_data),
