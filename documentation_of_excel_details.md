@@ -1,30 +1,34 @@
 **WATERSHED FACTORS:**
 
-AMADR - doc
+these sheets use a watershed factor in their calculation in Final 
 
-CMP001 - no doc
+name  | sheets doc | appendix doc
 
-CMCHE - doc
+AMADR   y		y				
 
-CMCHE - doc
+CMP001  n 		y, **in CMP014**
 
-DEE023 - doc
+CMCHE - y		y	
 
-DSC035 - doc
+DEE023- y		y
 
-NHGAN - doc
+DSC035- y		y
 
-TGC003 - no doc
+NFM010- n		n, **but see TCG003 (different #)**
 
-NFM010 - no doc
+NHGAN - y		watershed not in this appendix
 
-UBEAR - no doc
+PARDE - y		n, say see table A-9, not in doc
 
-SLTSP - no doc
+SLTSP - n		y
 
-The documented watershed factors should be updated. The table headings (maybe wrong) indicate that they use precip from
+TGC003- n		y
 
-1971 - 2000. We have nearly double that data now.
+UBEAR - n		maybe? see STLSP
+
+The documented watershed factors should be updated. The table headings (maybe wrong) indicate that most use precip from
+
+1971 - 2000. We have nearly double that data now. Some don't use precip and don't need updating.
 
 
 
@@ -32,19 +36,19 @@ The documented watershed factors should be updated. The table headings (maybe wr
 
 AMADR - no models
 
-CMCHE - has models A-D and uses none
+\*CMCHE - has models A-D and uses none
 
 CMP001 - only model A
 
 CMP014 - only model A
 
-COL003 - models A and B
+\*COL003 - models A and B
 
 CSM035 - no models
 
 DEE023 - only model A
 
-DSC035 - models A - D, uses A and B
+\*DSC035 - models A - D, uses A and B
 
 JNKSN - only model A
 
@@ -58,7 +62,7 @@ NHGAN - no model
 
 PARDE - only model A
 
-SFM005 - models A and B
+\*SFM005 - models A and B
 
 SLTSP - only model A
 
