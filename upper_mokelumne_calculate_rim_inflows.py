@@ -16,14 +16,14 @@ if __name__ == "__main__":
 
     # option to run each element using "upstream" (antecedent) SV INPUT values from sheets rather than from the values
     # calculated within the Python code.
-    b_use_upstream_sv_inputs = False
+    b_use_upstream_sv_inputs = True
 
-    # this flag initiates two things. 1) It runs the upstream code up until we reach the inputs for the s-curve
-    # disaggregation. It then checks the x watershed and y watershed against data in files that end in
-    # "input_to_s_curve.csv".  2) It takes the s-curve from the sheets (found in files that end in
+    # This flag initiates two things: 1) a check to see that the upstream code up until we reach the inputs for the s-curve
+    # disaggregation match the excel workbooks. It checks the x watershed and y watershed against data in files that end
+    # in "input_to_s_curve.csv".  2) It takes the s-curve from the sheets (found in files that end in
     # "output_from_s_curve.csv") and runs the code downstream of that point. It compares the final output to the
     # SV INPUT tab of the sheets (found in "CS3_SJR_ReadAllInflowDatatoDSS_05.17.23.xlsm").
-    b_replicate_sheets = False
+    b_replicate_sheets = True
 
     # true on this b_reproduce_error_lbear_ss reproduces two errors in the sheets. 1) time shifts the monthly averages
     # relative to where they belong by 3 months to replicate sheet. 2) calculates monthly averages with an incorrect
@@ -88,12 +88,12 @@ if __name__ == "__main__":
 
         read_replication_data(ls_sheet_info, df_before_s, df_after_s)
 
-    # gap fill the data sets that need it.
+    # ----------------------------------
+    # --- GAP FILL AND DROP, ROUND 1 ---
+    # ----------------------------------
     # in CMP001, fill the JNKSN_STORAGE in December 1965 with linear interpolation of the adjacent months.
     df_full_data.loc['1965-12-31', 'JNKSN_STORAGE'] = (df_full_data.loc['1965-11-30', 'JNKSN_STORAGE']
                                                        + df_full_data.loc['1966-01-31', 'JNKSN_STORAGE']) / 2
-
-    # drop parts of data sets that need it.
     # for JNKSN, create a copy of data with dropped WY1955
     df_full_data.rename(columns={'11332500': '11332500_v1'}, inplace=True)
     df_full_data["11332500_v2"] = df_full_data["11332500_v1"].copy()
@@ -101,7 +101,9 @@ if __name__ == "__main__":
     # for CMP014, create a copy of data with dropped WY1955 and WY1956
     df_full_data.loc["1954-10-31":"1956-10-01", "11331500"] = float("nan")
 
-    # merge gauges that need it.
+    # -----------------------------
+    # --- MERGE AND COPY GAUGES ---
+    # -----------------------------
 
     # -- begin COL003 merge --
     # with COL003 (11319500), EBMUD is main historical gage (pre-2021) but NaN's are filled with CDEC MKM
@@ -131,6 +133,10 @@ if __name__ == "__main__":
     # save to csv
     df_full_data.to_csv('./Intermediate/upper_mokelumne_full_gauge_data_gap_filled.csv')
 
+    # -------------------
+    # --- EVAPORATION ---
+    # -------------------
+
     print("Calculating evaporation...")
 
     # calculate the evaporation amounts for all of our reservoirs
@@ -140,7 +146,10 @@ if __name__ == "__main__":
 
     df_full_data.to_csv('./Intermediate/upper_mokelumne_full_gauge_data_wevap.csv')
 
-    # unimpairing the data
+    # -----------------------------
+    # --- UNIMPAIRMENT, ROUND 1 ---
+    # -----------------------------
+
     df_unimpaired_data = pd.DataFrame()
 
     print("Calculating unimpaired flows, round 1 ...")
@@ -165,11 +174,10 @@ if __name__ == "__main__":
     # save to csv
     df_unimpaired_data.to_csv('./Intermediate/upper_mokelumne_unimpaired_data.csv')
 
-    # redistribute negatives
-    # not needed yet
+    # ----------------------------------
+    # --- GAP FILL AND DROP, ROUND 2 ---
+    # ----------------------------------
 
-    df_extended_data = pd.DataFrame()
-    df_synthetic_data = pd.DataFrame()
 
     # see DEE023, 11335700 WY1967 is gap filled with WY1965 times a ratio of annual flows from 11335000_v2
     d_65 = df_unimpaired_data.loc['1964-10-01':'1965-10-01', '11335000_v2'].sum()     # annual flow for WY65
@@ -183,17 +191,18 @@ if __name__ == "__main__":
     df_full_data.loc['1966-10-01':'1967-10-01' , '11335700'] = (df_shifted.loc['1966-10-01':'1967-10-01']
                                                                 * (d_67 / d_65))
 
+    # ------------------------
+    # --- S-CURVE, ROUND 1 ---
+    # ------------------------
+
+    df_extended_data = pd.DataFrame()
+    df_synthetic_data = pd.DataFrame()
+
 
     if b_replicate_sheets:
         print("Checking inputs to s-curve, part 1...")
-        # compare unrounded 11317000
-        # TODO update. the next line should really be comparing the code's 11317000 (full data) to a sheet copied in from
-        #  the scurve inputs of sheet SFM005
-        compare_two_df(df_full_data['11317000'].drop(df_full_data['11317000'].index[0]), df_sv_inputs['I_MFM008'], '11317000',
-                       'SV_INPUT_MFM008')
-        # compare rounded 11317000
         compare_two_df(df_full_data['11317000'].drop(df_full_data['11317000'].index[0]).round(2), df_sv_inputs['I_MFM008'], '11317000',
-                       'SV_INPUT_MFM008')
+                       'SV_INPUT_MFM008')                                                   # for MFM008
         compare_two_df(df_unimpaired_data['11335000_v1'], df_before_s['CMP001'], '11335000_v1',
                        'before_s_CMP001')                                                   # for CMP001
         compare_two_df(df_unimpaired_data['11335000_v2'], df_before_s['CMP014'], '11335000_v2',
@@ -227,6 +236,10 @@ if __name__ == "__main__":
                 df_extended_data, df_synthetic_data, 1961, 1977, False,
                 '11335700', i_final_year=i_final_year, s_strange_sheet='DEE023')                     # see DEE023
 
+    # -----------------------------
+    # --- UNIMPAIRMENT, ROUND 2 ---
+    # -----------------------------
+
     # unimpairing the data for those that rely on previously s-curved data
     print("Calculating unimpaired flows, round 2...")
     df_unimpaired_data['11319500_v1'] = unimpaired_11319500(df_full_data, df_extended_data)                 # see COL003
@@ -237,28 +250,35 @@ if __name__ == "__main__":
     # save to csv
     df_unimpaired_data.to_csv('./Intermediate/upper_mokelumne_unimpaired_data.csv')
 
-    # extend with the s-curve disaggregation, round 2
+    # ------------------------
+    # --- S-CURVE, ROUND 2 ---
+    # ------------------------
+
     print("Extending flows, part 2...")
 
     if b_replicate_sheets:
         print("Checking inputs to s-curve, part 2...")
         compare_two_df(df_before_s['COL003'], df_unimpaired_data['11319500_v1'], 'col003_before_s',
-                       '11319500_v1')
+                       '11319500_v1')                                                           # see COL003
         compare_two_df(df_before_s['SLTSP'], df_unimpaired_data['11319500_v1'], 'sltsp_before_s',
-                       '11319500_v1')
+                       '11319500_v1')                                                           # see SLTSP
 
     extend_data(df_unimpaired_data['11319500_v1'], df_full_data['11315000'],
                df_extended_data, df_synthetic_data, 1928, i_final_year, False,
                '11315000', i_x_start_year=1922, i_final_year=i_final_year, s_strange_sheet='COL003') # see COL003
     extend_data(df_unimpaired_data['11319500_v1'], df_unimpaired_data['LBearSS_v1'],
                df_extended_data, df_synthetic_data, 1989, i_final_year, False,
-               'LBearSS_v1', i_final_year=i_final_year)                                             # see SLTSP
+               'LBearSS_v1', i_final_year=i_final_year)                                              # see SLTSP
     extend_data(df_unimpaired_data['11319500_v1'], df_unimpaired_data['LBearSS_v2'],
                 df_extended_data, df_synthetic_data, 1989, i_final_year, False,
-                'LBearSS_v2', i_final_year=i_final_year)                                            # see UBEAR
+                'LBearSS_v2', i_final_year=i_final_year)                                             # see UBEAR
     extend_data(df_unimpaired_data['11319500_v1'], df_unimpaired_data['11316600'],
                 df_extended_data, df_synthetic_data, 1986, i_y_end_year=2001,
                 b_use_all_y_data=False, s_name='11316600', i_final_year=i_final_year)                       # see NFM010
+
+    # -------------------------------
+    # --- FILL DATA AFTER S-CURVE ---
+    # -------------------------------
 
     # copy synthetic data to extended data where extended data is NaN for 11315000 and
     df_extended_data.fillna({'11315000': df_synthetic_data['11315000']}, inplace=True)                # see COL003
@@ -273,7 +293,10 @@ if __name__ == "__main__":
     df_extended_data.to_csv('./Intermediate/upper_mokelumne_extended_data.csv')
     df_synthetic_data.to_csv('./Intermediate/upper_mokelumne_synthetic_data.csv')
 
-    # final rim inflows
+    # -----------------------------
+    # --- CALCULATE RIM INFLOWS ---
+    # -----------------------------
+
     df_rim_inflows = pd.DataFrame()
 
     print("Calculating rim inflows...")
@@ -326,8 +349,10 @@ if __name__ == "__main__":
 
     df_rim_inflows.to_csv('./Outputs/upper_mokelumne_rim_inflows.csv')
 
+    # ----------------------------------------------
+    # --- COMPARE TO PREVIOUS RIM INFLOW DATASET ---
+    # ----------------------------------------------
 
-    # Comparison with Previous Rim Inflow dataset
     if b_compare_data:
 
         # read in data

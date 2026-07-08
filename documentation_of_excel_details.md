@@ -62,7 +62,7 @@ NHGAN - no model
 
 PARDE - only model A
 
-\*SFM005 - models A and B
+**\*SFM005 - models A and B**
 
 SLTSP - only model A
 
@@ -132,9 +132,7 @@ USGS 11335000 UNIMP
 
 Export
 
-&#x09;Source: At bottom of the table for USGS 11333000, Camp Creek near Somerset
-
-&#x09;09/04-12/08 from reports to SWRCB, 01/09-09/21 CDEC CCN
+&#x09;In sheet, it says "Source: At bottom of the table for USGS 11333000, Camp Creek near Somerset. 09/04-12/08 from reports to SWRCB, 01/09-09/21 CDEC CCN"
 
 JNKSN Storage
 
@@ -189,6 +187,16 @@ I\_CMCHE sheet doesn't match SV INPUT I\_CMCHE. I don't see clues about where th
 
 
 PARDE and CMCHE have a rounding difference because excel rounds down and pandas uses bankers rounding. This is the only difference.
+
+
+
+River Diversions (tab)
+
+&#x09;CONSUMPTIVE RIVER DIVERSIONS UPSTREAM FROM MOKELUMNE HILL
+
+&#x09;Source: EBMUD
+
+
 
 
 
@@ -284,9 +292,19 @@ The s-curve is run for x watershed from 1922 to present, but using the monthly a
 
 
 
+**UBEAR**
+
+
+
+LOWER BEAR STORAGE
+
+&#x09;Only uses EBMUD data up until  6/30/2015. Contrast with SLTSP.
+
 **SLTSP**
 
 
+
+Flag in upper\_mokelumne\_calculate\_rim\_inflow.py
 
 &#x20;# true on this b\_reproduce\_error\_lbear\_ss reproduces two errors in the sheets. 1) time shifts the monthly averages
 
@@ -298,7 +316,11 @@ The s-curve is run for x watershed from 1922 to present, but using the monthly a
 
 
 
-UBEAR and SLTSP use different versions of Lower Bear Salt Springs FNF. TODO clarify difference.
+LOWER BEAR STORAGE (tab)
+
+&#x09;Says "01/53-09/01 from CDEC (id = LWB)" but scrolling down, it looks like they use EBMUD, not CDEC.
+
+&#x09;Has EBMUD data through 12/31/2021. This seems better (?) that the UBEAR version of the same data.
 
 
 
