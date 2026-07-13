@@ -162,8 +162,8 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
 def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_y_data, s_current_location):
     """
     Generates two plots to understand the quality of the generated data.
-    First plot compares the historical y data and teh reference x data.
-    Second plot compares the historical y data and teh synthetic y data.
+    First plot compares the historical y data and the reference x data.
+    Second plot compares the historical y data and the synthetic y data.
 
     Parameters
     ----------
@@ -932,6 +932,76 @@ def extend_data(df_reference_data, df_current_data, df_extended_data, df_synthet
     df_extended_data[s_name] = monthly_to_timeseries(df_curr_final_data)
     df_synthetic_data[s_name] = monthly_to_timeseries(df_curr_synthetic_data)
 
+def extend_data_multi_model(df_reference_data_1, df_current_data_1, df_reference_data_2, df_current_data_2,
+                df_extended_data, df_synthetic_data,
+                i_y1_start_year, i_y1_end_year, i_y2_start_year, i_y2_end_year, b_use_all_y_data, s_name,
+                s_model_name_1, s_model_name_2, i_x_start_year=1922,
+                i_final_year=2021, s_strange_sheet=''):
+
+    """
+    Extends data using the s-curve disaggregation and compares two different models.
+    Also creates the plots and saves the data into dataframes.
+
+    Parameters
+    ----------
+    df_reference_data_1: series
+        Reference pandas series, for running model 1
+    df_current_data_1: series
+        Current dataset series to be extended, for running model 1
+    df_reference_data_2: series
+        Reference pandas series, for running model 2
+    df_current_data_2: series
+        Current dataset series to be extended, for running model 2
+    df_extended_data: dataframe
+        Already extended data
+    df_synthetic_data: dataframe
+        Extended fully synthetic data
+    i_y1_start_year: int
+        Start year for current data, model 1
+    i_y1_end_year: int
+        End year for current data
+    i_y2_start_year: int
+        Start year for current data, model 1
+    i_y2_end_year: int
+        End year for current data
+    b_use_all_y_data: bool
+        Flag for if we want to use all of the y data instead of just the selected years
+    s_name: str
+        Name of current station
+    i_final_year: int
+        Final year for the x data
+    s_strange_sheet: string
+        For a few sheets with strange modifications to the s-curve procedure, this is the sheet name with capital letters.
+    Returns
+    -------
+    None
+    """
+    # do the s-curve disaggregation for model 1
+    df_curr_final_data_1, df_curr_synthetic_data_1 = s_curve_disaggregation(df_reference_data_1,
+                                                                        df_current_data_1,
+                                                                        i_x_start_year, i_final_year,
+                                                                        i_y1_start_year, i_y1_end_year,
+                                                                        b_use_all_y_data, s_strange_sheet)
+    # do the s-curve disaggregation for model 2
+    df_curr_final_data_2, df_curr_synthetic_data_2 = s_curve_disaggregation(df_reference_data_2,
+                                                                            df_current_data_2,
+                                                                            i_x_start_year, i_final_year,
+                                                                            i_y2_start_year, i_y2_end_year,
+                                                                            b_use_all_y_data, s_strange_sheet)
+
+    # generate the comparison plots
+    two_s_curves_comparison_plots(df_curr_final_data_1, timeseries_to_monthly(df_reference_data_1),
+                                  df_curr_final_data_2, timeseries_to_monthly(df_reference_data_2), s_name,
+                                  s_model_name_1, s_model_name_2)
+
+    # put the data into the two final dataframes
+    df_extended_data[s_name+s_model_name_1] = monthly_to_timeseries(df_curr_final_data_1)
+    df_synthetic_data[s_model_name_1] = monthly_to_timeseries(df_curr_synthetic_data_1)
+
+    # put the data into the two final dataframes
+    df_extended_data[s_name+s_model_name_2] = monthly_to_timeseries(df_curr_final_data_2)
+    df_synthetic_data[s_model_name_2] = monthly_to_timeseries(df_curr_synthetic_data_2)
+
 
 def calculate_watershed_factors(s_path):
 
@@ -1190,3 +1260,81 @@ def read_replication_data(ls_sheet_info, df_before, df_after):
 
         # convert to timeseries and write into df_after
         df_after[sheet[0]] = monthly_to_timeseries(df_temp)
+
+def two_s_curves_comparison_plots(df_final_y_dat_1, df_x_data_1,
+                                  df_final_y_dat_2, df_x_data_2, s_current_location, s_model_name_1, s_model_name_2):
+    """
+    Generates a plot to compare model 1 and model 2 for a sheet.
+
+    Parameters
+    ----------
+    df_final_y_dat_1: dataframe
+        Final y data for model 1 that is synthetic where data was missing and historical where we had the data
+    df_x_data_1: dataframe
+        Original x data for model 1
+    df_final_y_dat_2: dataframe
+        Final y data for model 2 that is synthetic where data was missing and historical where we had the data
+    df_x_data_2: dataframe
+        Original x data for model 2
+    s_current_location: str
+        Current location of the data
+    s_model_name_1: str
+        The name for model 1
+    s_model_name_2: str
+        The name for model 2
+    Returns
+    -------
+    None
+    """
+    print("in two s curves comparison")
+    # first remove nans so they won't get plotted as zeros
+    df_x_data_1.dropna(inplace=True)
+
+    # get the years months when the data overlaps
+    o_overlaps_1 = df_final_y_dat_1.index.intersection(df_x_data_1.index)
+    o_overlaps_2 = df_final_y_dat_2.index.intersection(df_x_data_1.index)
+
+    # the plot looks at yearly totals for where we have y data
+    # create yearly totals for both models, x and y
+    df_x_totals_1 = df_x_data_1.sum(axis=1)[o_overlaps_1]
+    df_y_totals_1 = df_final_y_dat_1.sum(axis=1)[o_overlaps_1]
+    df_x_totals_2 = df_x_data_2.sum(axis=1)[o_overlaps_2]
+    df_y_totals_2 = df_final_y_dat_2.sum(axis=1)[o_overlaps_2]
+
+
+    # scatter plot of this data with labels of the years
+    plt.figure(figsize=(10, 5))
+    plt.scatter(df_x_totals_1.values, df_y_totals_1.values, marker='.', color='royalblue')
+    plt.scatter(df_x_totals_2.values, df_y_totals_2.values, marker='.', color='red')
+
+    # uncomment out these lines to add in year values next to data points
+    # for x,y,label in zip(df_x_totals_1.values, df_y_totals_1.values, df_y_totals_1.index.values):
+    #     plt.text(x,y,label, ha='center', va='bottom', size='x-small')
+
+    # fit lines of best fit
+    slope_1, intercept_1 = np.polyfit(df_x_totals_1.values, df_y_totals_1.values, 1)
+    dl_line_vals_1 = intercept_1 + slope_1 * df_x_totals_1.values
+    r2_1 = r2_score(df_y_totals_1.values, dl_line_vals_1)
+    slope_2, intercept_2 = np.polyfit(df_x_totals_2.values, df_y_totals_2.values, 1)
+    dl_line_vals_2 = intercept_2 + slope_2 * df_x_totals_2.values
+    r2_2 = r2_score(df_y_totals_2.values, dl_line_vals_2)
+
+
+    # plot the lines of best fit
+    # show the formulas for the lines and the r squared values as the label
+
+    plt.plot(df_x_totals_1.values, dl_line_vals_1, color='royalblue', linewidth=0.5, label=f'{s_model_name_1}\ny = {slope_1:.4f}x + {intercept_1:.4f}\nR^2 = {r2_1:.4f}')
+    plt.plot(df_x_totals_2.values, dl_line_vals_2, color='red', linewidth=0.5, label=f'{s_model_name_2}\ny = {slope_2:.4f}x + {intercept_2:.4f}\nR^2 = {r2_2:.4f}')
+
+
+    # formatting of plot
+    plt.grid(alpha=0.5)
+    plt.xlim((0,None))
+    plt.ylim(0,None)
+    plt.xlabel('Reference Data Flows (TAF)')
+    plt.ylabel(f'{s_current_location} Flows (TAF)')
+    # plt.title('Correlation of Annual Flows (TAF)')
+    plt.legend()
+    plt.savefig(f'./Figures/Model_Comparison/{s_current_location} Comparison of Two Models, {s_model_name_1} and {s_model_name_2}'
+                , bbox_inches='tight', dpi=300)
+    plt.close()

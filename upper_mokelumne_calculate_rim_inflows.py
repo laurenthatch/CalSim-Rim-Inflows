@@ -46,6 +46,7 @@ if __name__ == "__main__":
     # first if the needed output folders don't exist, create them
     os.makedirs('./Intermediate', exist_ok=True)
     os.makedirs('./Figures', exist_ok=True)
+    os.makedirs('./Figures/Model_Comparison', exist_ok=True)
     os.makedirs('./Outputs', exist_ok=True)
 
     # read in the data that we already read in
@@ -212,10 +213,9 @@ if __name__ == "__main__":
 
     print("Extending flows, part 1...")
     # extend with the s-curve disaggregation, round 1
-    # for SFM005
     extend_data(df_full_data['11317000'], df_full_data['11318500'],
                 df_extended_data, df_synthetic_data, 1934, i_final_year, False,
-                '11318500', i_final_year=i_final_year)
+                '11318500', i_final_year=i_final_year)                                              # see SFM005
     # for JNKSN, s-curve
     extend_data(df_unimpaired_data['11335000_v2'], df_full_data['11332500_v2'],
                 df_extended_data, df_synthetic_data, 1947, 1954, False,
@@ -263,6 +263,11 @@ if __name__ == "__main__":
         compare_two_df(df_before_s['SLTSP'], df_unimpaired_data['11319500_v1'], 'sltsp_before_s',
                        '11319500_v1')                                                           # see SLTSP
 
+    extend_data_multi_model(df_unimpaired_data['11319500_v1'], df_full_data['11318500'], df_full_data['11317000'],
+                            df_full_data['11318500'], df_extended_data, df_synthetic_data,
+                            1934, 2021, 1934, 2021, False, '11318500',
+                            "Model A", "Model B", i_x_start_year=1922,
+                            i_final_year=2021, s_strange_sheet='')                                           # SFM005 A/B
     extend_data(df_unimpaired_data['11319500_v1'], df_full_data['11315000'],
                df_extended_data, df_synthetic_data, 1928, i_final_year, False,
                '11315000', i_x_start_year=1922, i_final_year=i_final_year, s_strange_sheet='COL003') # see COL003

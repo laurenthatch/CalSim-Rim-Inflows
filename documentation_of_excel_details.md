@@ -1,14 +1,14 @@
 **WATERSHED FACTORS:**
 
-these sheets use a watershed factor in their calculation in Final 
+these sheets use a watershed factor in their calculation in Final
 
 name  | sheets doc | appendix doc
 
-AMADR   y		y				
+AMADR   y		y
 
 CMP001  n 		y, **in CMP014**
 
-CMCHE - y		y	
+CMCHE - y		y
 
 DEE023- y		y
 
@@ -310,7 +310,7 @@ Flag in upper\_mokelumne\_calculate\_rim\_inflow.py
 
 &#x20;   # relative to where they belong by 3 months to replicate sheet. 2) calculates monthly averages with an incorrect
 
-&#x20;   # denominator. The flag is set at the top of this document. Set this to false to run a more correct version of
+&#x20;   # denominator in cells v127:ag127 in sheet Cole 11315030. The flag is set at the top of this document. Set this to false to run a more correct version of
 
 &#x20;   # I\_SLTSP.
 
