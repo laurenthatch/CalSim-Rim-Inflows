@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # relative to where they belong by 3 months to replicate sheet. 2) calculates monthly averages with an incorrect
     # denominator. The flag is set at the top of this document. Set this to false to run a more correct version of
     # I_SLTSP.
-    b_reproduce_error_lbear_ss = False
+    b_reproduce_error_lbear_ss = True
 
     # --- End Flags
 
