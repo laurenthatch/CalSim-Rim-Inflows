@@ -391,6 +391,9 @@ if __name__ == "__main__":
         df_rmse = np.sqrt(((df_reference[df_rim_inflows.columns] - df_rim_inflows) ** 2).mean()).to_frame("RMSE")
         df_diffs = df_diffs.join(df_rmse)
 
+        print("note the CMP014 will not show agreement in the following table because the python code is replicating the rev G version,")
+        print("but the CS3_SJR_ReadAllInflowDatatoDSS_05.17.23.xlsm file has the rev F version.")
+
         # format output
 
         cols_to_format = ["Max Difference", "P50 Abs Diff", "P90 Abs Diff", "P95 Abs Diff", "P99 Abs Diff",

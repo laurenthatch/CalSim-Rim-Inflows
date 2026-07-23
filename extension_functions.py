@@ -43,7 +43,6 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     df_y_data_synthetic: dataframe
         Full timeseries of synthetic y data.
     """
-
     # if it is a series, get it into the monthly format
     if isinstance(df_x_data, pd.Series):
         df_x_data = timeseries_to_monthly(df_x_data.to_frame('TAF'))
@@ -54,9 +53,9 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     df_y_data.dropna(inplace=True)
 
     # trim the x data to just the specified years
-    df_x_data = df_x_data.loc[i_x_start_year:i_x_end_year,:]
+    df_x_data = df_x_data.loc[i_x_start_year:i_x_end_year, :]
 
-    # trim the y data to only the x years in case the y is longer for some reason
+    # trim the y data to only the x years incase the y is longer for some reason
     df_y_data = df_y_data.loc[i_x_start_year:i_x_end_year, :]
 
     # first we want the x value monthly average for just the years of y data we want to keep
@@ -82,10 +81,11 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
 
     # now we want the same cumulative proportion of the monthly averages as before but for the y data
     # first get the averages for the months
-    # if doing COL003 (11315000) only average the y months from 1944 to present
     if(s_strange_sheet == 'COL003'):
+        # if doing COL003 (11315000) only average the y months from 1944 to present
         dl_y_month_avgs = [0] + df_y_data.loc[1944:i_y_end_year, :].mean(axis=0).tolist()
     elif(s_strange_sheet == 'DEE023'):
+        # if doing DEE023, do the standard calculation for this step
         dl_y_month_avgs = [0] + df_y_data.loc[i_y_start_year:i_y_end_year, :].mean(axis=0).tolist()
     else:
         dl_y_month_avgs = [0] + df_y_data.loc[i_y_start_year:i_y_end_year, :].mean(axis=0).tolist()
@@ -131,8 +131,6 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
         df_y_year_totals.drop(index=1967, inplace=True)
     # fit a model and get the slope and intercept
     o_lin_model = LinearRegression()
-    #todo remove next line
-    temp = df_x_year_totals.loc[df_y_year_totals.index,]
     o_lin_model.fit(df_x_year_totals.loc[df_y_year_totals.index,], df_y_year_totals)
     d_slope = o_lin_model.coef_[0][0]
     d_intercept = o_lin_model.intercept_[0]
@@ -1287,7 +1285,6 @@ def two_s_curves_comparison_plots(df_final_y_dat_1, df_x_data_1,
     -------
     None
     """
-    print("in two s curves comparison")
     # first remove nans so they won't get plotted as zeros
     df_x_data_1.dropna(inplace=True)
 
