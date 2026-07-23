@@ -100,7 +100,17 @@ Model A - to calculate the slope and intercept for the linear fit between annual
 
 
 
-**CMP014**
+**NEW CMP014 (version G)**
+
+
+
+USGS 11335000 UNIMP
+
+&#x09;Same as CMP001, with interpolated value for December, 1965.
+
+
+
+**OLD CMP014 (version F)**
 
 
 

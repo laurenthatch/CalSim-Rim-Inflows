@@ -775,9 +775,6 @@ def calc_evap_JNKSN(s_dss_file, df_storage_data):
     # get the evap rates from the dss file
     df_evap_rates = read_evap_data(s_dss_file, 'ER_JNKSN')
 
-    # TODO REMOVE
-    df_evap_rates.to_csv('./Intermediate/upper_mokelumne_temp_evap_rates.csv')
-
     # read in the area capacity table
     df_area_capacity = pd.read_csv(r"./Area Capacities/JNKSN_AC.csv")
 

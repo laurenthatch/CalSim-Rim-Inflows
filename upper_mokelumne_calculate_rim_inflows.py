@@ -325,7 +325,7 @@ if __name__ == "__main__":
                  df_sv_inputs[['I_TGC003']], df_sv_inputs[['I_COL003']], df_rim_inflows)
         I_JNKSN(df_extended_data['11332500'], df_rim_inflows)
         I_CMP001(df_after_s[['CMP001']], df_extra_sv_inputs[['I_JNKSN_IN_CMP001']], df_rim_inflows)
-        I_CMP014(df_after_s[['CMP014']], df_rim_inflows)
+        I_CMP014(df_after_s[['CMP001']], df_extra_sv_inputs[['I_JNKSN_IN_CMP001']], df_rim_inflows)
         I_CSM035(df_unimpaired_data[['11335000_v1']], df_sv_inputs[['I_JNKSN']],df_sv_inputs[['I_CMP001']],
                  df_sv_inputs[['I_CMP014']], df_rim_inflows)
         I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)
@@ -345,7 +345,7 @@ if __name__ == "__main__":
         I_CMCHE(df_rim_inflows)
         I_JNKSN(df_extended_data['11332500'], df_rim_inflows)
         I_CMP001(df_extended_data[['11333000']], df_rim_inflows[['I_JNKSN']], df_rim_inflows)
-        I_CMP014(df_extended_data[['11331500']], df_rim_inflows)
+        I_CMP014(df_extended_data[['11333000']], df_rim_inflows[['I_JNKSN']], df_rim_inflows)
         I_CSM035(df_unimpaired_data[['11335000_v1']], df_rim_inflows[['I_JNKSN']], df_rim_inflows[['I_CMP001']],
              df_rim_inflows[['I_CMP014']], df_rim_inflows)
         I_AMADR(df_unimpaired_data[['11335000_v2']], df_rim_inflows)

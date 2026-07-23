@@ -99,7 +99,8 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     # get the cumulative sum
     dl_y_avg_cumulative_proportions = np.cumsum(dl_y_avg_cumulative_proportions)
 
-    # now for every value in df_x_cumulative_proportions, we want the smallest value in dl_x_avg_cumulative_proportions that is greater than or equal to the value
+    # now for every value in df_x_cumulative_proportions, we want the smallest value in dl_x_avg_cumulative_proportions
+    # that is greater than or equal to the value
     # np.searchsorted does this with side set to 'left' for a greater than or equal to
     il_indices = np.searchsorted(dl_x_avg_cumulative_proportions, df_x_cumulative_proportions, side='left')
 
