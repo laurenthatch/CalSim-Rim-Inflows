@@ -4,4 +4,8 @@ Figures/
 Intermediate/
 Outputs/
 .ipynb_checkpoints/
-#*.ipynb
+*.ipynb
+.vscode/
+Examples/
+*.xlsm
+environmentExamples.yml
