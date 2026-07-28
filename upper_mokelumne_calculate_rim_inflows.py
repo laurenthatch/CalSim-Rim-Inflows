@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # file path and name must be provided to plot/calculate comparison and to use SV INPUTS from sheets as upstream
     # data
-    s_prev_rim_inflows_fn = "CS3_SJR_ReadAllInflowDatatoDSS_05.17.23.xlsm"
+    s_prev_rim_inflows_fn = "CS3_SJR_ReadAllInflowDatatoDSS_05.17.23.csv"
     s_prev_rim_inflow_sheet = "Inflows"
 
     # path for some extra sv inputs
@@ -55,9 +55,7 @@ if __name__ == "__main__":
     # read in upstream sheet SV INPUT sheet data
     if b_use_upstream_sv_inputs:
         # read in data
-        df_sv_inputs = pd.read_excel(s_prev_rim_inflows_fn, sheet_name=s_prev_rim_inflow_sheet,
-                                     skiprows=[0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], header=0, index_col=0,
-                                     parse_dates=True)
+        df_sv_inputs = pd.read_csv(s_prev_rim_inflows_fn, index_col=0, parse_dates=True)
         df_extra_sv_inputs = pd.read_csv(s_prev_rim_inflows_extra, index_col=0, parse_dates=True)
 
     if b_replicate_sheets:
@@ -361,7 +359,7 @@ if __name__ == "__main__":
     if b_compare_data:
 
         # read in data
-        df_reference = pd.read_excel(s_prev_rim_inflows_fn, sheet_name=s_prev_rim_inflow_sheet, skiprows=[0,2,3,4,5,6,7,8,9,10,11],header=0, index_col=0, parse_dates=True)
+        df_reference = pd.read_csv(s_prev_rim_inflows_fn, index_col=0, parse_dates=True)
 
         # calculate differences
         df_diffs = abs(df_reference[df_rim_inflows.columns] - df_rim_inflows).max().to_frame('Max Difference')
