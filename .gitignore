@@ -2,7 +2,6 @@ __pycache__/
 .idea/
 Figures/
 Intermediate/
-Outputs/
 .ipynb_checkpoints/
 *.ipynb
 .vscode/
