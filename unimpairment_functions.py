@@ -1,5 +1,5 @@
 import pandas as pd
-from extension_functions import unimpaired_flows, get_diversions
+from extension_functions import unimpaired_flows, get_diversions, sum_if_all_not_nan
 import numpy as np
 from datetime import datetime
 
@@ -799,3 +799,561 @@ def unimpaired_calsim3(df_gauge_data):
 
     return df_unimpaired
 
+def unimpaired_11319500(df_full_gauge_data, df_extended_gauge_data):
+    """
+    Calculate the unimpaired flow for USGS  11319500:  MOKELUMNE R NR MOKELUMNE HILL CA.
+    Follows the logic from CS3_I_COL003_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. in TAF. this is full dataset
+    df_extended_gauge_data: dataframe
+        Gauge data that contains any extended gauge data sets needed to unimpair the flows. in TAF.
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+
+    # 11319500: MOKELUMNE R NR MOKELUMNE HILL CA (what we are unimpairing)
+    # 11318500: SF MOKELUMNE R NR WEST POINT CA (aka SFM005)
+    # 11317000: MF MOKELUMNE R A WEST POINT CA (aka MFM008)
+
+    # round to two decimal places
+    df_11318500_rounded = df_extended_gauge_data['11318500'].round(2)
+    df_11317000_rounded = df_full_gauge_data['11317000'].round(2)
+
+    df_unimpaired = unimpaired_flows(df_full_gauge_data['11319500_v1'],
+                                     fl_subtractions=[df_11318500_rounded, df_11317000_rounded]
+                                     )
+
+    return df_unimpaired
+
+def unimpaired_lbear_salt_springs_fnf_v1(df_gauge_data, b_reproduce_error_lbear_ss):
+    """
+    Calculate the unimpaired flow for CALCULATED UNIMPAIRED at Lower Bear and Salt Springs. Follows the logic from
+    CS3_I_SLTSP_Rev2022G.xlsm Uses LB_STORAGE_V1 to match sheet.
+    Parameters
+    ----------
+    df_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. in TAF
+    b_reproduce_error_lbear_ss: boolean
+        A flag to reproduce two errors in the excel sheet if true.
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # 11313500: SALT SPRINGS RES NR WEST POINT CA
+    # 11314000: TIGER C PH COND BL SALT SPRINGS DAM CA
+    # 11314500: NF MOKELUMNE R BL SALT SPRINGS DAM CA
+    # 11315030: COLE C BL DIV DAM NR SALT SPRINGS DAM CA
+    # 11315600: LOWER BEAR R RES NR NICHOLL CA
+    # 11315900: BEAR R BL LO BEAR R DAM CA
+
+    # there are two errors in the sheets, both in filling 11315030 with monthly averages.
+    # 1) A timeshifting error in 11315030. Instead of filling NaN's with monthly averages, they are filled with the
+    #    monthly average of the month 3 months prior. So a January NaN is filled with October's monthly average
+    # 2) The averages have an incorrect denominator by 6. So for a monthly average that should divide by 30 months of
+    #    non-NaN data, the sheet divides by 24 (for example).
+
+    # create df_unimpaired and match row names to df_gauge_data
+    df_unimpaired = pd.DataFrame(index=df_gauge_data.index)
+
+
+    ### Where 11315050 is NaN, replace with monthly averages up until 'cutoff'
+    # create a deep copy of 11315030 dataset
+    df_11315030 = df_gauge_data[['11315030']].copy(deep=True)
+
+    if (b_reproduce_error_lbear_ss):
+        # create a copy of 11315030 timeshifted forward by 3 months to help reproduce an error in excel
+        df_shifted_11315030 = df_gauge_data[['11315030']].copy(deep=True).shift(3)
+
+    ## calculate the monthly averages of the correct 11315030 data
+    # set a cutoff date so we can reproduce the monthly averages of the sheets
+    s_cutoff = '2021-09-30'
+
+    # create a cutoff copy of the data
+    df_11315030_cutoff = df_11315030.loc[:s_cutoff]
+
+    # count the number of non-NaN values per month
+    df_counts_by_month = df_11315030_cutoff.groupby(df_11315030_cutoff.index.month).count()
+
+    # sum of non‑NaN values for each month
+    df_sums_by_month = df_11315030_cutoff.groupby(df_11315030_cutoff.index.month).sum()
+
+    df_sums_by_month.columns = ['11315030']
+
+    if (b_reproduce_error_lbear_ss):
+        # this reproduces the error in CS3_I_SLTSP_Rev2022G.xlsm on sheet "Cole 11315030 in Cells W127 to AH127
+        df_counts_by_month = df_counts_by_month - 6
+    # find the average by diving the summed month value by the data count for that month
+
+    # if any counts are zero meaning no data in the record for that month in any year, put NaN in df_monthly_average
+    df_monthly_average = df_sums_by_month.div(df_counts_by_month.replace(0, pd.NA))
+
+    # Build a DataFrame of monthly average values based on each row's month. df_month_map has the same row index as
+    # df_shifted_11315030 and df_11315030 but with monthly averages for all months
+    if (b_reproduce_error_lbear_ss):
+        df_month_map = (
+            df_shifted_11315030.index.to_frame(index=False)
+            .set_index(df_shifted_11315030.index)
+        )
+    else:
+        df_month_map = (
+            df_11315030.index.to_frame(index=False)
+            .set_index(df_11315030.index)
+        )
+    df_month_map['month'] = df_month_map.index.month
+
+    df_fill_values = (
+        df_month_map[['month']]
+        .merge(df_monthly_average, left_on='month', right_index=True)
+        .iloc[:, 1:]  # keep only the monthly-average column
+    )
+    if (b_reproduce_error_lbear_ss):
+        df_fill_values.columns = df_shifted_11315030.columns  # match original column name
+    else:
+        df_fill_values.columns = df_11315030.columns  # match original column name
+
+    # Fill NaNs
+    if (b_reproduce_error_lbear_ss):
+        df_filled_11315030 = df_shifted_11315030.fillna(df_fill_values)
+    else:
+        df_filled_11315030 = df_11315030.fillna(df_fill_values)
+
+    df_gauge_data['11315030'] = df_filled_11315030
+
+    # Combine flows by adding gauge data, but if any of them are NaN return Nan.
+    sum_if_all_not_nan(df_unimpaired, 'LBearSS_v1', df_gauge_data, ['11315900', '11314000', '11314500',
+                                                '11315030', 'SS_HIST_EVAP', 'LB_HIST_EVAP'])
+
+    # Unimpair Little Bear Salt Springs
+    df_unimpaired = unimpaired_flows(df_unimpaired['LBearSS_v1'],
+                                fl_storages = [df_gauge_data['SS_STORAGE'], df_gauge_data['LB_STORAGE_V1'],
+                                               df_gauge_data['PGE_OLD_RES']]
+    )
+    return df_unimpaired
+
+def unimpaired_lbear_salt_springs_fnf_v2(df_gauge_data, b_reproduce_error_lbear_ss):
+    """
+    Calculate the unimpaired flow for CALCULATED UNIMPAIRED at Lower Bear and Salt Springs. Follows the logic from
+    CS3_I_UBEAR_Rev2022G.xlsm. Uses LB_STORAGE_V2 to match sheet.
+    Parameters
+    ----------
+    df_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. in TAF
+    b_reproduce_error_lbear_ss: boolean
+        A flag to reproduce two errors in the excel sheet if true.
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # 11313500: SALT SPRINGS RES NR WEST POINT CA
+    # 11314000: TIGER C PH COND BL SALT SPRINGS DAM CA
+    # 11314500: NF MOKELUMNE R BL SALT SPRINGS DAM CA
+    # 11315030: COLE C BL DIV DAM NR SALT SPRINGS DAM CA
+    # 11315600: LOWER BEAR R RES NR NICHOLL CA
+    # 11315900: BEAR R BL LO BEAR R DAM CA
+
+    # there are two errors in the sheets, both in filling 11315030 with monthly averages.
+    # 1) A timeshifting error in 11315030. Instead of filling NaN's with monthly averages, they are filled with the
+    #    monthly average of the month 3 months prior. So a January NaN is filled with October's monthly average
+    # 2) The averages have an incorrect denominator by 6. So for a monthly average that should divide by 30 months of
+    #    non-NaN data, the sheet divides by 24 (for example).
+
+    # create df_unimpaired and match row names to df_gauge_data
+    df_unimpaired = pd.DataFrame(index=df_gauge_data.index)
+
+
+    ### Where 11315050 is NaN, replace with monthly averages up until 'cutoff'
+    # create a deep copy of 11315030 dataset
+    df_11315030 = df_gauge_data[['11315030']].copy(deep=True)
+
+    if (b_reproduce_error_lbear_ss):
+        # create a copy of 11315030 timeshifted forward by 3 months to help reproduce an error in excel
+        df_shifted_11315030 = df_gauge_data[['11315030']].copy(deep=True).shift(3)
+
+    ## calculate the monthly averages of the correct 11315030 data
+    # set a cutoff date so we can reproduce the monthly averages of the sheets
+    s_cutoff = '2021-09-30'
+
+    # create a cutoff copy of the data
+    df_11315030_cutoff = df_11315030.loc[:s_cutoff]
+
+    # count the number of non-NaN values per month
+    df_counts_by_month = df_11315030_cutoff.groupby(df_11315030_cutoff.index.month).count()
+
+    # sum of non‑NaN values for each month
+    df_sums_by_month = df_11315030_cutoff.groupby(df_11315030_cutoff.index.month).sum()
+
+    df_sums_by_month.columns = ['11315030']
+
+    if (b_reproduce_error_lbear_ss):
+        # this reproduces the error in CS3_I_SLTSP_Rev2022G.xlsm on sheet "Cole 11315030 in Cells W127 to AH127
+        df_counts_by_month = df_counts_by_month - 6
+    # find the average by diving the summed month value by the data count for that month
+
+    # if any counts are zero meaning no data in the record for that month in any year, put NaN in df_monthly_average
+    df_monthly_average = df_sums_by_month.div(df_counts_by_month.replace(0, pd.NA))
+
+    # Build a DataFrame of monthly average values based on each row's month. df_month_map has the same row index as
+    # df_shifted_11315030 and df_11315030 but with monthly averages for all months
+    if (b_reproduce_error_lbear_ss):
+        df_month_map = (
+            df_shifted_11315030.index.to_frame(index=False)
+            .set_index(df_shifted_11315030.index)
+        )
+    else:
+        df_month_map = (
+            df_11315030.index.to_frame(index=False)
+            .set_index(df_11315030.index)
+        )
+    df_month_map['month'] = df_month_map.index.month
+
+    df_fill_values = (
+        df_month_map[['month']]
+        .merge(df_monthly_average, left_on='month', right_index=True)
+        .iloc[:, 1:]  # keep only the monthly-average column
+    )
+    if (b_reproduce_error_lbear_ss):
+        df_fill_values.columns = df_shifted_11315030.columns  # match original column name
+    else:
+        df_fill_values.columns = df_11315030.columns  # match original column name
+
+    # Fill NaNs
+    if (b_reproduce_error_lbear_ss):
+        df_filled_11315030 = df_shifted_11315030.fillna(df_fill_values)
+    else:
+        df_filled_11315030 = df_11315030.fillna(df_fill_values)
+
+    df_gauge_data['11315030'] = df_filled_11315030
+
+    # Combine flows by adding gauge data, but if any of them are NaN return Nan.
+    sum_if_all_not_nan(df_unimpaired, 'LBearSS_v2', df_gauge_data, ['11315900', '11314000', '11314500',
+                                                '11315030', 'SS_HIST_EVAP', 'LB_HIST_EVAP'])
+
+    # Unimpair Little Bear Salt Springs
+    df_unimpaired = unimpaired_flows(df_unimpaired['LBearSS_v2'],
+                                fl_storages = [df_gauge_data['SS_STORAGE'], df_gauge_data['LB_STORAGE_V2'],
+                                               df_gauge_data['PGE_OLD_RES']]
+    )
+    return df_unimpaired
+
+def unimpaired_11316600(df_full_gauge_data, df_extended_gauge_data, df_unimpaired_data):
+    """
+    Calculate the unimpaired flow for USGS  11316600: NF MOKELUMNE R AB TIGER CREEK CA
+    Follows the logic from CS3_I_NFM010_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+    df_extended_gauge_data: dataframe
+        Gauge data that contains any extended gauge data sets needed to unimpair the flows. In TAF.
+    df_unimpaired_data: dataframe
+        Unimpaired gauge data from other sites used to unimpair this flow. In TAF.
+    Returns
+    -------
+    df_temporary: dataframe
+        Unpaired flow for current station
+    """
+
+    # 11313500: SALT SPRINGS RES NR WEST POINT CA
+    # 11315600: LOWER BEAR R RES NR NICHOLL CA
+    # 11316600: NF MOKELUMNE R AB TIGER CREEK CA
+    # 11316605: TIGER CREEK BW REGULATOR RESERVOIR NR PIONEER CA
+    # 11316610: TIGER CREEK POWERHOUSE NR WEST POINT CA
+    # 11319500: MOKELUMNE R NR MOKELUMNE HILL CA, using this from the df_unimpaired_data, so already subtracted
+    #                   I_SFM005 and I_MFM008
+
+    # set a cutoff date for the montly averages so we get better agreement with the excel sheet
+    s_cutoff = "2021-09-30"
+
+    # create monthly average list for 11316605
+    dl_monthly_avg_11316605 = (
+        df_full_gauge_data.loc[:s_cutoff]  # keep rows ≤ 2021-09-30
+        .groupby(df_full_gauge_data.loc[:s_cutoff].index.month)["11316605"]
+        .mean()
+        .tolist()
+    )
+
+    # fill list into dataframe so each month in index is filled with the correct monthly average
+    df_monthly_avg_11316605 = (
+        df_full_gauge_data.index.to_series().dt.month
+        .map(lambda m: dl_monthly_avg_11316605[m - 1])
+    )
+
+    #copy our source data that we're unimpairing (df_full_gauge_data['11316600']) into a new dataframe with column
+    # called 'TAF'
+
+    df_temporary = unimpaired_flows(df_full_gauge_data['11316600'],
+                                     fl_storages=[df_full_gauge_data['SS_STORAGE'].fillna(0),
+                                                  df_full_gauge_data['LB_STORAGE_V1'].fillna(0),
+                                                  df_full_gauge_data['PGE_OLD_RES'].fillna(0),],
+                                     fl_additions=[df_full_gauge_data['11316610'],
+                                                   df_monthly_avg_11316605,
+                                                   df_full_gauge_data['LB_HIST_EVAP'].fillna(0),
+                                                   df_full_gauge_data['SS_HIST_EVAP'].fillna(0),]
+                                     )
+    # take the lesser value of 1) unimpaired 6600 and 2) unimpaired 11319500_v1 and put it in df_temporary
+    df_temporary = np.minimum(df_unimpaired_data["11319500_v1"], df_temporary)
+
+    return df_temporary
+
+def unimpaired_tiger_creek_conduit_accretions(df_full_gauge_data, df_extended_data):
+    """
+    Calculate the unimpaired flow for Tiger Creek Conduit Accretions (no USGS gage):
+    Follows the logic from CS3_I_TGC003_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+    df_extended_gauge_data: dataframe
+        Gauge data that contains any extended gauge data sets needed to unimpair the flows. In TAF.
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # 11314000: Tiger Creek Conduit, TIGER C PH COND BL SALT SPRINGS DAM CA
+    # 11316605: TIGER CREEK BW REGULATOR RESERVOIR NR PIONEER CA
+    # 11316610:  TIGER CREEK POWERHOUSE NR WEST POINT CA
+
+    df_unimpaired = unimpaired_flows(df_full_gauge_data['11316610'],
+                                     fl_additions=[df_full_gauge_data['11316605']],
+                                     fl_subtractions=[df_full_gauge_data['11314000']]
+                                     )
+    # To match sheets, if any df_unimpaired values are below -999, replace with -999. This does not clip any values.
+    # Count values below -999
+    n_clipped = int((df_unimpaired < -999).sum())
+    # Clip the series
+    df_unimpaired = df_unimpaired.clip(lower=-999)
+
+    return df_unimpaired
+
+def unimpaired_11309500_for_NHGAN(df_full_gauge_data):
+    """
+    Calculate the unimpaired flow for the Calaveras River at 11309500:
+    Follows the logic from CS3_I_NHGAN_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+      Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # 11309500: CALAVERAS R A JENNY LIND CA
+    # OHGAN_STORAGE: OLD HOGAN END OF MONTH STORAGE
+    # NHGAN_STORAGE: NEW HOGAN DAM END OF MONTH STORAGE
+    # OHGAN_evap: Old Hogan reservoir evaporation
+    # NHGAN_evap: New Hogan reservoir evaporation
+
+    # fill in zeros in place of the negative values for both storages and both evap series
+
+    df_ohgan_storage = df_full_gauge_data['OHGAN_STORAGE'].clip(lower=0)
+    df_nhgan_storage = df_full_gauge_data['NHGAN_STORAGE'].clip(lower=0)
+    df_ohgan_evap = df_full_gauge_data['OHGAN_evap'].clip(lower=0)
+    df_nhgan_evap = df_full_gauge_data['NHGAN_evap'].clip(lower=0)
+
+    #fill NaN values with zeros for evap and storage
+    df_ohgan_storage.fillna(0, inplace=True)
+    df_nhgan_storage.fillna(0, inplace=True)
+    df_ohgan_evap.fillna(0, inplace=True)
+    df_nhgan_evap.fillna(0, inplace=True)
+
+    df_unimpaired = unimpaired_flows(df_full_gauge_data['11309500'],
+                                     fl_additions=[df_ohgan_evap, df_nhgan_evap],
+                                     fl_storages=[df_ohgan_storage, df_nhgan_storage]
+                                     )
+
+    return df_unimpaired
+
+def unimpaired_NF_SF_ITAS(df_full_gauge_data):
+    """
+    Combines three gage data sets into one:
+    Follows the logic from CS3_I_NHGAN_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+      Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # 11308000: NF CALAVERAS R NR SAN ANDREAS CA
+    # 11306000: SF CALAVERAS R NR SAN ANDREAS CA
+    # 11306500: CALAVERITAS C NR SAN ANDREAS CA
+
+    # note: we're not really unimpairing any of these gauges, we're just adding all three
+
+    df_unimpaired = unimpaired_flows(df_full_gauge_data['11308000'],
+                                     fl_additions=[df_full_gauge_data['11306000'],
+                                                   df_full_gauge_data['11306500']]
+                                     )
+
+    return df_unimpaired
+
+def unimpaired_NH_DAM_RELEASE(df_full_gauge_data):
+    """
+    Calculate the unimpaired flow from New Hogan Dam Release (USACE) (no USGS gage):
+    Follows the logic from CS3_I_NHGAN_Rev2022G.xlsm
+
+    Parameters
+    ----------
+    df_full_gauge_data: dataframe
+      Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+    Returns
+    -------
+    df_unimpaired: dataframe
+        Unpaired flow for current station
+    """
+    # USACE_NH_RELEASE: USACE NEW HOGAN RESERVOIR RELEASE
+    # OHGAN_STORAGE: OLD HOGAN END OF MONTH STORAGE
+    # NHGAN_STORAGE: NEW HOGAN DAM END OF MONTH STORAGE
+    # OHGAN_evap: Old Hogan reservoir evaporation
+    # NHGAN_evap: New Hogan reservoir evaporation
+
+    # fill in zeros in place of the negative values for storages, evaps, and the series we're unimpairing
+
+    df_ohgan_storage = df_full_gauge_data['OHGAN_STORAGE'].clip(lower=0)
+    df_nhgan_storage = df_full_gauge_data['NHGAN_STORAGE'].clip(lower=0)
+    df_ohgan_evap = df_full_gauge_data['OHGAN_evap'].clip(lower=0)
+    df_nhgan_evap = df_full_gauge_data['NHGAN_evap'].clip(lower=0)
+    df_nh_release = df_full_gauge_data['USACE_NH_RELEASE'].clip(lower=0)
+
+    #fill NaN values with zeros for evap and storage
+    df_ohgan_storage.fillna(0, inplace=True)
+    df_nhgan_storage.fillna(0, inplace=True)
+    df_ohgan_evap.fillna(0, inplace=True)
+    df_nhgan_evap.fillna(0, inplace=True)
+
+    df_unimpaired = unimpaired_flows(df_nh_release,
+                                     fl_additions=[df_ohgan_evap, df_nhgan_evap],
+                                     fl_storages=[df_ohgan_storage, df_nhgan_storage]
+                                     )
+
+    return df_unimpaired
+
+def unimpaired_11319500_v2(df_full_gauge_data):
+    """
+      Calculate the unimpaired flow from of USGS gage 11319500, stored at 11319500_v2. Not the COL003 version of
+      11319500, which is stored as 11319500_v1.
+      Follows the logic from CS3_I_MOK079_Rev2022G.xlsm
+
+      Parameters
+      ----------
+      df_full_gauge_data: dataframe
+        Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+      Returns
+      -------
+      df_unimpaired: dataframe
+          Unpaired flow for current station
+      """
+
+    # set negative values to zero for the following dataframes
+    df_no_neg_salt_storage = df_full_gauge_data[['SS_STORAGE']].clip(lower=0).copy(deep=True)
+    df_no_neg_lbear_storage = df_full_gauge_data[['LB_STORAGE_V1']].clip(lower=0).copy(deep=True)
+    df_no_neg_pge_storage = df_full_gauge_data[['PGE_OLD_RES']].clip(lower=0).copy(deep=True)
+    df_no_neg_lb_hist_evap = df_full_gauge_data[['LB_HIST_EVAP']].clip(lower=0).copy(deep=True)
+    df_no_neg_ss_hist_evap = df_full_gauge_data[['SS_HIST_EVAP']].clip(lower=0).copy(deep=True)
+    df_no_neg_riv_div = df_full_gauge_data[['MOK_RIV_DIV']].clip(lower=0).copy(deep=True)
+
+    # rename the columns 'TAF' to prepare for inputting to unimpaired_flows
+    df_no_neg_salt_storage.rename(columns={df_no_neg_salt_storage.columns[0]: 'TAF'}, inplace=True)
+    df_no_neg_lbear_storage.rename(columns={df_no_neg_lbear_storage.columns[0]: 'TAF'}, inplace=True)
+    df_no_neg_pge_storage.rename(columns={df_no_neg_pge_storage.columns[0]: 'TAF'}, inplace=True)
+    df_no_neg_lb_hist_evap.rename(columns={df_no_neg_lb_hist_evap.columns[0]: 'TAF'}, inplace=True)
+    df_no_neg_ss_hist_evap.rename(columns={df_no_neg_ss_hist_evap.columns[0]: 'TAF'}, inplace=True)
+    df_no_neg_riv_div.rename(columns={df_no_neg_riv_div.columns[0]: 'TAF'}, inplace=True)
+
+    #  use those values to unimpaire the 11319500_v2 data
+    df_unimpaired = unimpaired_flows(df_full_gauge_data['11319500_v2'],
+                                     fl_additions=[df_no_neg_lb_hist_evap, df_no_neg_ss_hist_evap,
+                                                   df_no_neg_riv_div],
+                                     fl_storages=[df_no_neg_salt_storage, df_no_neg_lbear_storage,
+                                                  df_no_neg_pge_storage]
+                                     )
+
+    return df_unimpaired
+
+def unimpaired_11335000(df_full_gauge_data, b_v1=True):
+    """
+     Calculate the unimpaired flow from of USGS gage 11335000.
+     Follows the logic from CS3_I_CMP001_Rev2022G.xlsm
+
+     Parameters
+     ----------
+     df_full_gauge_data: dataframe
+       Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+     Returns
+     -------
+     df_unimpaired: dataframe
+         Unpaired flow for current station
+     """
+
+    df_11335000 = df_full_gauge_data['11335000'].copy()
+    df_export = df_full_gauge_data['CMP001_EXPORT']
+    # fill in zeros in place of the negative values for storages, evaps
+    df_JNKSN_evap = df_full_gauge_data['JNKSN_evap'].clip(lower=0)
+    df_JNKSN_storage = df_full_gauge_data['JNKSN_STORAGE'].clip(lower=0)
+
+    if not b_v1:
+        #for version 2, we use zero for the storage in december of 1965
+        df_JNKSN_storage.loc['1965-12-31'] = 0
+    # fill NaN values with zeros for evap and storage
+    df_11335000.fillna(0, inplace=True)
+    df_export.fillna(0, inplace=True)
+    df_JNKSN_evap.fillna(0, inplace=True)
+    df_JNKSN_storage.fillna(0, inplace=True)
+
+    # combine storage diff, evap, and export
+    df_unimpaired_temp = unimpaired_flows(df_export, fl_additions=[df_JNKSN_evap], fl_storages=[df_JNKSN_storage])
+    # clip negatives to zero
+    df_unimpaired_temp = df_unimpaired_temp.clip(lower=0)
+
+    df_unimpaired = unimpaired_flows(df_11335000, fl_additions=[df_unimpaired_temp])
+
+    return df_unimpaired
+
+
+def unimpaired_11333000(df_full_gauge_data):
+    """
+     Calculate the unimpaired flow from of USGS gage 11333000.
+     Follows the logic from CS3_I_CMP001_Rev2022G.xlsm
+
+     Parameters
+     ----------
+     df_full_gauge_data: dataframe
+       Gauge data that contains the current station and all needed to unimpair the flows. In TAF. This is full dataset
+     Returns
+     -------
+     df_unimpaired: dataframe
+         Unpaired flow for current station
+     """
+
+    df_11333000 = df_full_gauge_data['11333000'].copy()
+    df_export = df_full_gauge_data['CMP001_EXPORT']
+    # fill in zeros in place of the negative values for storages, evaps, and export diversion
+    df_JNKSN_evap = df_full_gauge_data['JNKSN_evap'].clip(lower=0)
+    df_JNKSN_storage = df_full_gauge_data['JNKSN_STORAGE'].clip(lower=0)
+    df_export = df_export.clip(lower=0)
+
+    # fill NaN values with zeros for evap and storage
+    df_export.fillna(0, inplace=True)
+    df_JNKSN_evap.fillna(0, inplace=True)
+    df_JNKSN_storage.fillna(0, inplace=True)
+
+    # combine storage diff, evap, and export
+    df_unimpaired = unimpaired_flows(df_11333000, fl_additions=[df_JNKSN_evap, df_export],
+                                          fl_storages=[df_JNKSN_storage])
+
+    return df_unimpaired
