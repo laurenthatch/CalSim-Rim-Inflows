@@ -8,3 +8,4 @@ Intermediate/
 Examples/
 *.xlsm
 environmentExamples.yml
+Outputs/SCurveStats.csv
