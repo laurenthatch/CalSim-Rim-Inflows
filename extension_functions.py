@@ -13,7 +13,7 @@ import os
 
 def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i_y_start_year,
                            i_y_end_year, b_use_all_y=False, s_strange_sheet='',b_save_stats=False,
-                           s_name = '',s_out_stats = 'Outputs/SCurveStats.csv'):
+                           s_reference_name = '',s_target_name = '',s_out_stats = 'Outputs/SCurveStats.csv'):
     """
     Takes in the x data and the y data and generated a full timeseries of synthetic y data.
     This is meant to replicate what the Excel/VBA does for the S-Curve disaggregation.
@@ -38,8 +38,10 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
         For a few sheets with strange modifications to the s-curve procedure, this is the sheet name with capital letters.
     b_save_stats: boolean
         Option to save s-curve stats
-    s_name: str
-        Name of current station, only needed if saving s_curve stats to file, i.e. b_save_stats = True
+    s_reference_name: str
+        Name of reference location, only needed if saving s_curve stats to file, i.e. b_save_stats = True
+    s_target_name: str
+        Name of target location, only needed if saving s_curve stats to file, i.e. b_save_stats = True
     s_out_stats: string
         Output file to save s-curve stats if b_save_stats is true
 
@@ -166,7 +168,8 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     # add a line to the output csv with location,slope,intercept
     if b_save_stats:
         df_stats = pd.DataFrame(
-            {'location':[s_name,s_name],
+            {'reference location':[s_reference_name]*2,
+            'target location':[s_target_name]*2,
             'stat':['slope','intercept'],
             'value':[d_slope,d_intercept]})
         df_stats.to_csv(s_out_stats,mode='a',index=False,header=False) 
@@ -174,7 +177,7 @@ def s_curve_disaggregation(df_x_data, df_y_data, i_x_start_year, i_x_end_year, i
     return df_y_data_output, df_y_data_synthetic
 
 
-def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_y_data, s_current_location,
+def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_y_data, s_current_location,s_reference_location,
                             b_save_stats=False,s_out_stats = 'Outputs/SCurveStats.csv'):
     """
     Generates two plots to understand the quality of the generated data.
@@ -193,6 +196,8 @@ def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_
         Original y data
     s_current_location: str
         Current location of the data
+    s_reference_location: str
+        Reference location name
     b_save_stats: boolean
         Option to save s-curve stats
     s_out_stats: string
@@ -201,6 +206,9 @@ def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_
     -------
     None
     """
+
+    # save dataset names
+
 
     # first remove nans so they wont get plotted as zeros
     df_x_data.dropna(inplace=True)
@@ -265,7 +273,8 @@ def s_curve_comparison_plots(df_final_y_dat, df_y_data_synthetic, df_x_data, df_
     # add a line to the output csv with location,slope,intercept
     if b_save_stats:
         df_stats = pd.DataFrame(
-            {'location':[s_current_location]*3,
+            {'reference location':[s_reference_location]*3,
+            'target location':[s_current_location]*3,
             'stat':['fit_slope','fit_intercept','r2'],
             'value':[slope,intercept,r2]})
         df_stats.to_csv(s_out_stats,mode='a',index=False,header=False) 
@@ -954,12 +963,13 @@ def extend_data(df_reference_data, df_current_data, df_extended_data, df_synthet
                                                                         i_x_start_year, i_final_year,
                                                                         i_y_start_year, i_y_end_year,
                                                                         b_use_all_y_data, s_strange_sheet,
-                                                                        s_name = s_name,
+                                                                        s_target_name = s_name,
+                                                                        s_reference_name= df_reference_data.name,
                                                                         b_save_stats=b_save_stats)
     # generate the comparison plots
     s_curve_comparison_plots(df_curr_final_data, df_curr_synthetic_data,
                              timeseries_to_monthly(df_reference_data), timeseries_to_monthly(df_current_data),
-                             s_name,b_save_stats=b_save_stats)
+                             s_name,df_reference_data.name,b_save_stats=b_save_stats)
 
     # put the data into the two final dataframes
     df_extended_data[s_name] = monthly_to_timeseries(df_curr_final_data)
@@ -1017,7 +1027,8 @@ def extend_data_multi_model(df_reference_data_1, df_current_data_1, df_reference
                                                                         i_x_start_year, i_final_year,
                                                                         i_y1_start_year, i_y1_end_year,
                                                                         b_use_all_y_data, s_strange_sheet,
-                                                                        s_name = s_name + '_ref1',
+                                                                        s_target_name = s_name + '_ref1',
+                                                                        s_reference_name= df_reference_data_1.name,
                                                                         b_save_stats=b_save_stats)
     # do the s-curve disaggregation for model 2
     df_curr_final_data_2, df_curr_synthetic_data_2 = s_curve_disaggregation(df_reference_data_2,
@@ -1025,13 +1036,15 @@ def extend_data_multi_model(df_reference_data_1, df_current_data_1, df_reference
                                                                             i_x_start_year, i_final_year,
                                                                             i_y2_start_year, i_y2_end_year,
                                                                             b_use_all_y_data, s_strange_sheet,
-                                                                            s_name = s_name + '_ref2',
+                                                                            s_target_name = s_name + '_ref2',
+                                                                            s_reference_name = df_reference_data_2.name,
                                                                             b_save_stats=b_save_stats)
 
     # generate the comparison plots
     two_s_curves_comparison_plots(df_curr_final_data_1, timeseries_to_monthly(df_reference_data_1),
                                   df_curr_final_data_2, timeseries_to_monthly(df_reference_data_2), s_name,
-                                  s_model_name_1, s_model_name_2,b_save_stats=b_save_stats)
+                                  s_model_name_1, s_model_name_2,s_ref_name_1 = df_reference_data_1.name, 
+                                  s_ref_name_2 = df_reference_data_2.name,b_save_stats=b_save_stats)
 
     # put the data into the two final dataframes
     df_extended_data[s_name+s_model_name_1] = monthly_to_timeseries(df_curr_final_data_1)
@@ -1302,6 +1315,7 @@ def read_replication_data(ls_sheet_info, df_before, df_after):
 
 def two_s_curves_comparison_plots(df_final_y_dat_1, df_x_data_1,
                                   df_final_y_dat_2, df_x_data_2, s_current_location, s_model_name_1, s_model_name_2,
+                                  s_ref_name_1='',s_ref_name_2='',
                                   s_out_stats = 'Outputs/SCurveStats.csv',b_save_stats=False):
     """
     Generates a plot to compare model 1 and model 2 for a sheet.
@@ -1322,6 +1336,10 @@ def two_s_curves_comparison_plots(df_final_y_dat_1, df_x_data_1,
         The name for model 1
     s_model_name_2: str
         The name for model 2
+    s_ref_name_1: str
+        Reference gage name for model 1
+    s_ref_name_2: str
+        Reference gage name for model 2
     b_save_stats: boolean
         Option to save s-curve stats
     s_out_stats: string
@@ -1386,7 +1404,8 @@ def two_s_curves_comparison_plots(df_final_y_dat_1, df_x_data_1,
     # add a line to the output csv with location,slope,intercept
     if b_save_stats:
         df_stats = pd.DataFrame(
-            {'location':[s_current_location + s_model_name_1]*3 + [s_current_location + s_model_name_2]*3,
+            {'reference location':[s_ref_name_1]*3+[s_ref_name_2]*3,
+            'target location':[s_current_location + s_model_name_1]*3 + [s_current_location + s_model_name_2]*3,
             'stat':['fit_slope','fit_intercept','r2']*2,
             'value':[slope_1,intercept_1,r2_1,slope_2,intercept_2,r2_2]})
         df_stats.to_csv(s_out_stats,mode='a',index=False,header=False) 

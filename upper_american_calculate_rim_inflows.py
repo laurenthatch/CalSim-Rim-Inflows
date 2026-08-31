@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # option to save s-curve parameters
     b_save_stats = True
     if b_save_stats and not os.path.exists('Outputs/SCurveStats.csv'): # if s-curve parameter output is desired and the output file doesn't exist, create initial output file to write to
-        pd.DataFrame(columns=['location','stat','value']).to_csv('Outputs/SCurveStats.csv',index=False)
+        pd.DataFrame(columns=['reference location','target location','stat','value']).to_csv('Outputs/SCurveStats.csv',index=False)
 
     # this holds the already extended evap rates
     s_evap_dss_path = r".\Inputs\evaporation_rates.dss"
