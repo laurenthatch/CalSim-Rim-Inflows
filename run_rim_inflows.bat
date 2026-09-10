@@ -5,7 +5,7 @@ echo Starting Python Environment
 call conda activate extension
 
 :: Remove previous output files series of steps to ensure the correct files are deleted
-echo WARNING removing previous ouptput files
+echo WARNING removing previous output files
 pause
 
 set "TARGET_FOLDER=Outputs"
